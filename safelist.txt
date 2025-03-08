@@ -1,0 +1,3 @@
+w-[fit-content]
+mx-auto
+mt-8

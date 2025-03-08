@@ -1,0 +1,88 @@
+{% set quote = options.quote %}
+{% set cta = options.cta_block %}
+{% set logo = logo_split(options.logo) %}
+{% set footer = options.footer_columns %}
+
+
+{# Quote Section #}
+<section>
+	<div class="max-w-screen-xl px-4 py-8 mx-auto text-center lg:py-16 lg:px-6">
+		<figure class="max-w-screen-md mx-auto">
+			<svg class="h-12 mx-auto mb-3 text-gray-400 dark:text-gray-600" viewbox="0 0 24 27" fill="none" xmlns="http://www.w3.org/2000/svg">
+				<path d="M14.017 18L14.017 10.609C14.017 4.905 17.748 1.039 23 0L23.995 2.151C21.563 3.068 20 5.789 20 8H24V18H14.017ZM0 18V10.609C0 4.905 3.748 1.038 9 0L9.996 2.151C7.563 3.068 6 5.789 6 8H9.983L9.983 18L0 18Z" fill="currentColor"></path>
+			</svg>
+			<blockquote>
+				<p class="text-2xl font-medium text-gray-900 dark:text-white">"{{quote.quote_text ?? ""}}"</p>
+			</blockquote>
+			<figcaption class="flex items-center justify-center mt-6 space-x-3"><img class="w-6 h-6 rounded-full" src="{{quote.author_image.sizes.thumbnail ?? quote.author_image.url}}" alt="profile picture"><div class="flex items-center divide-x-2 divide-gray-500 dark:divide-gray-700">
+					<div class="pr-3 font-medium text-gray-900 dark:text-white">{{quote.author_name}}</div>
+					<a href="{{quote.author_company.url}}" target="_blank" class="pl-3 text-sm font-light text-gray-500 dark:text-gray-400 block hover:underline">{{quote.author_company.title}}</a>
+				</div>
+			</figcaption>
+		</figure>
+	</div>
+</section>
+
+
+{# CTA Section #}
+<section class="max-w-screen-xl px-4 py-12 mx-auto md:py-16 sm:px-6 lg:px-8">
+	<div class="relative py-16 rounded-3xl bg-dark-700 lg:py-20">
+		<svg class="absolute inset-y-0 top-0 z-20 w-1/4 h-full right-1/4 text-dark-700" preserveaspectratio="none" viewbox="0 0 100 100" fill="currentcolor">
+			<polygon points="0,0 100,0 0,100"></polygon>
+		</svg>
+		<div class="absolute inset-y-0 z-10 w-1/2 h-full left-1/2 bg-dark-800 rounded-r-3xl"></div>
+		<div class="relative z-30 flex flex-col items-center justify-center px-4 mx-auto text-center sm:px-16 lg:flex-row lg:text-left">
+			<div class="max-w-lg text-2xl font-bold sm:text-4xl lg:w-1/2">
+				<h3 class="text-4xl font-extrabold tracking-tight text-white sm:text-5xl">{{cta.cta_text}}</h3>
+			</div>
+			<div class="flex justify-center max-w-lg mt-10 lg:w-1/2 lg:mt-0 lg:justify-end">
+				{% include 'components/button.twig' with {button:cta.cta_button.link, type:cta.cta_button.style} %}
+			</div>
+		</div>
+	</div>
+</section>
+
+
+<footer class="px-4 py-12 md:py-16 bg-dark-900 sm:px-6 lg:px-8">
+	<div class="grid gap-8 mx-auto lg:max-w-screen-xl sm:max-w-3xl md:grid-cols-3 md:gap-y-12 lg:grid-cols-4">
+		<div class="flex flex-col lg:mx-auto">
+			<div class="flex items-center">
+				<a href="/" class="text-2xl font-black lg:block group">
+					<span class="text-white transition duration-200 ease-in-out group-hover:text-dark-300">{{logo.full[0]}}</span>
+					<span class="transition duration-200 ease-in-out text-dark-300 group-hover:text-white">{{logo.full[1]}}</span>
+				</a>
+			</div>
+			<div class="mt-6 text-lg md:mt-4 text-dark-300">{{footer.copyright_text}}</div>
+		</div>
+		<div class="lg:mx-auto">
+			<h6 class="text-xl font-semibold text-white">{{footer.column_two_title}}</h6>
+			<p class="mt-2 text-lg text-dark-300">{{new_line_text(footer.column_two_text)}}</p>
+		</div>
+		<div class="lg:mx-auto">
+			<h6 class="text-xl font-semibold text-white">{{footer.column_three_title}}</h6>
+			<ul class="mt-2 space-y-1 text-lg">
+				{% for link in footer.column_three_page_links %}
+					{% set link = link.page %}
+					<li class="font-medium text-dark-300 hover:text-white">
+						<a href="{{link.url}}">{{link.title}}</a>
+					</li>
+				{% endfor %}
+			</ul>
+		</div>
+		<div class="sm:col-span-3 lg:col-span-1 lg:mx-auto">
+			<h6 class="text-xl font-semibold text-white">{{footer.column_four_title}}</h6>
+			<div class="w-full">
+				<div class="flex justify-start space-x-4">
+					<ul class="mt-2 space-y-1 text-lg">
+						{% for link in footer.column_four_social_links %}
+							{% set link = link.social %}
+							<li class="font-medium text-dark-300 hover:text-white">
+								<a href="{{link.url}}">{{link.title}}</a>
+							</li>
+						{% endfor %}
+					</ul>
+				</div>
+			</div>
+		</div>
+	</div>
+</footer>

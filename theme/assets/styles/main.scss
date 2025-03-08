@@ -1,0 +1,42 @@
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "theme";
+@import "tailwindcss/utilities";
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap");
+
+body.admin-bar {
+  max-height: calc(100vh - 32px);
+  font-family: "Inter", sans-serif;
+}
+
+.no-move {
+  @apply h-full w-full overflow-hidden;
+}
+
+.content-page,
+.wp-block-post-content {
+  * {
+    @apply mb-4;
+  }
+
+  h2 {
+    @apply text-3xl font-bold;
+  }
+
+  h3 {
+    @apply text-2xl font-medium;
+  }
+
+  h4 {
+    @apply text-xl font-medium;
+  }
+
+  h5 {
+    @apply text-lg font-medium;
+  }
+}
+
+.wrapped-content {
+  @apply max-w-2xl mx-auto;
+}

@@ -1,0 +1,30 @@
+{
+  "name": "cearls/timberland",
+  "type": "wordpress-theme",
+  "description": "A modern WordPress theme using Timber, ACF, Tailwind CSS and Alpine JS",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Chris Earls",
+      "email": "cgearls@gmail.com"
+    }
+  ],
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "https://github.com/barrytickle/barry-tailwind-lib.git"
+    }
+  ],
+  "require": {
+    "timber/timber": "^2.0",
+    "barry/barry-timber-helpers": "dev-main"
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "sort-packages": true,
+    "allow-plugins": {
+      "composer/installers": true
+    }
+  },
+  "minimum-stability": "stable"
+}
