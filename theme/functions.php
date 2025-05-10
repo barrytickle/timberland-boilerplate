@@ -27,11 +27,25 @@ class Timberland extends Timber\Site {
 		add_action( 'after_setup_theme', array( $this, 'theme_supports' ) );
 		add_filter( 'timber/context', array( $this, 'add_to_context' ) );
 		add_filter( 'timber/twig', array( $this, 'add_to_twig' ) );
+		add_filter( 'timber/twig', array( $this, 'add_twig_functions' ) );
 		add_action( 'block_categories_all', array( $this, 'block_categories_all' ) );
 		add_action( 'acf/init', array( $this, 'acf_register_blocks' ) );
 		add_action( 'enqueue_block_editor_assets', array( $this, 'enqueue_assets' ) );
 
 		parent::__construct();
+	}
+
+	public function add_twig_functions( $twig ) {
+		$twig->addFunction( new TwigFunction( 'check_url_match', array( $this, 'check_url_match' ) ) );
+		return $twig;
+	}
+
+	public function check_url_match ($string){
+		$url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
+		if($_SERVER['REQUEST_URI'] === $string  || $url === $string) {
+			return true;
+		}
+		return false;
 	}
 
 	public function add_to_context( $context ) {
@@ -85,12 +99,23 @@ class Timberland extends Timber\Site {
 		add_theme_support( 'editor-styles' );
 	}
 
+	public function wrap_non_acf_blocks($content) {
+		$pattern = '/<!-- wp:(?!acf\/)[\s\S]*?-->([\s\S]*?)<!-- \/wp:[\s\S]*?-->/';
+		$replacement = '<div class="custom-container">$0</div>';
+		return preg_replace($pattern, $replacement, $content);
+	}
+
 	public function enqueue_assets() {
-		wp_dequeue_style( 'wp-block-library' );
-		wp_dequeue_style( 'wp-block-library-theme' );
-		wp_dequeue_style( 'wc-block-style' );
-		wp_dequeue_script( 'jquery' );
-		wp_dequeue_style( 'global-styles' );
+		// Prevent dequeueing of critical scripts in admin
+		if (is_admin()) {
+			return;
+		}
+	
+		wp_dequeue_style('wp-block-library');
+		wp_dequeue_style('wp-block-library-theme');
+		wp_dequeue_style('wc-block-style');
+		wp_dequeue_script('jquery');
+		wp_dequeue_style('global-styles');
 
 		
 
