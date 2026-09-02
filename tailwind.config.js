@@ -1,22 +1,20 @@
+import { readFileSync } from "node:fs";
 import typography from "@tailwindcss/typography";
 
-// Define your safelisted class names here
-const safelist = [
-  "bg-red-500",
-  "text-xl",
-  "p-4",
-  "w-[fit-content]",
-  // Add more class names as needed
-];
+const safelist = readFileSync(new URL("./safelist.txt", import.meta.url), "utf8")
+  .split(/\r?\n/)
+  .map((className) => className.trim())
+  .filter((className) => className && !className.startsWith("#"));
 
 export default {
   content: [
+    "./theme/**/*.php",
     "./theme/views/**/*.twig",
     "./theme/blocks/**/*.twig",
     "./theme/components/**/*.twig",
-    "./theme/assets/styles/**/*.scss",
-    ...safelist.map((cls) => `dummy/${cls}.html`),
+    "./theme/assets/**/*.{js,scss}",
   ],
+  safelist,
   theme: {
     extend: {
       colors: {

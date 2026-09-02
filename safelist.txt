@@ -1,3 +1,7 @@
+# Tailwind classes generated dynamically or otherwise not found by the content scan.
+bg-red-500
+text-xl
+p-4
 w-[fit-content]
 mx-auto
 mt-8

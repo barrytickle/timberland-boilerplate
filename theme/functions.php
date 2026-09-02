@@ -6,31 +6,29 @@
  */
 
 use Twig\TwigFunction;
-// use BarryTimberHelpers; // Commented out as it is not defined
 
 require_once dirname( __DIR__ ) . '/vendor/autoload.php';
 require_once dirname( __DIR__ ) . '/theme/src/custom-functions.php';
+
 use BarryTimberHelpers\BarryTimberHelpers;
 
 BarryTimberHelpers::init();
 
-// use function BarryTimberHelpers\has_class_name;
-
 Timber\Timber::init();
 Timber::$dirname    = array( 'views', 'blocks' );
+// Kept disabled for backwards compatibility with the existing starter templates.
+// New themes should prefer escaped Twig output and use |raw only for trusted HTML.
 Timber::$autoescape = false;
-
 
 class Timberland extends Timber\Site {
 	public function __construct() {
-		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_assets' ) );
+		add_action( 'enqueue_block_editor_assets', array( $this, 'enqueue_editor_assets' ) );
 		add_action( 'after_setup_theme', array( $this, 'theme_supports' ) );
 		add_filter( 'timber/context', array( $this, 'add_to_context' ) );
-		add_filter( 'timber/twig', array( $this, 'add_to_twig' ) );
 		add_filter( 'timber/twig', array( $this, 'add_twig_functions' ) );
 		add_action( 'block_categories_all', array( $this, 'block_categories_all' ) );
 		add_action( 'acf/init', array( $this, 'acf_register_blocks' ) );
-		add_action( 'enqueue_block_editor_assets', array( $this, 'enqueue_assets' ) );
 
 		parent::__construct();
 	}
@@ -40,46 +38,52 @@ class Timberland extends Timber\Site {
 		return $twig;
 	}
 
-	public function check_url_match ($string){
-		$url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
-		if($_SERVER['REQUEST_URI'] === $string  || $url === $string) {
+	public function check_url_match( $string ) {
+		$request_uri = $_SERVER['REQUEST_URI'] ?? '/';
+
+		if ( $request_uri === $string ) {
 			return true;
 		}
-		return false;
+
+		$host = $_SERVER['HTTP_HOST'] ?? '';
+		if ( '' === $host ) {
+			return false;
+		}
+
+		$scheme = is_ssl() ? 'https://' : 'http://';
+		return $scheme . $host . $request_uri === $string;
 	}
 
 	public function add_to_context( $context ) {
 		global $post;
-		$context['processed_content'] = wrap_non_acf_blocks($post->post_content);
-		$context['site'] = $this;
-		$menus = wp_get_nav_menus();
-		$context['menus'] = [];
-		$context['all_posts'] = Timber::get_posts(array(
-			'posts_per_page' => -1
-		));
-		$context['pathname'] = $_SERVER['REQUEST_URI'];
 
-		$context['options'] = get_fields('options');
-		foreach ($menus as $menu) {
-			$context['menus'][$menu->slug] = Timber::get_menu($menu->term_id);
+		$context['site']       = $this;
+		$context['menus']      = array();
+		$context['pathname']   = $_SERVER['REQUEST_URI'] ?? '/';
+		$context['options']    = function_exists( 'get_fields' ) ? ( get_fields( 'options' ) ?: array() ) : array();
+		$context['header_cta'] = array();
+
+		if ( $post instanceof WP_Post ) {
+			$context['processed_content'] = $this->wrap_non_acf_blocks( $post->post_content );
+		} else {
+			$context['processed_content'] = '';
 		}
 
-		$context['header_cta'] = [];
-		$header_menu = Timber::get_menu('header');
-		if ($header_menu && !empty($header_menu->items)) {
-			$context['header_cta'] = end($header_menu->items);
+		foreach ( wp_get_nav_menus() as $menu ) {
+			$context['menus'][ $menu->slug ] = Timber::get_menu( $menu->term_id );
 		}
 
-		// Require block functions files
+		$header_menu = Timber::get_menu( 'header' );
+		if ( $header_menu && ! empty( $header_menu->items ) ) {
+			$context['header_cta'] = end( $header_menu->items );
+		}
+
+		// Require optional block-specific helper files once they are needed.
 		foreach ( glob( __DIR__ . '/blocks/*/functions.php' ) as $file ) {
 			require_once $file;
 		}
 
 		return $context;
-	}
-
-	public function add_to_twig( $twig ) {
-		return $twig;
 	}
 
 	public function theme_supports() {
@@ -99,71 +103,141 @@ class Timberland extends Timber\Site {
 		add_theme_support( 'editor-styles' );
 	}
 
-	public function wrap_non_acf_blocks($content) {
-		$pattern = '/<!-- wp:(?!acf\/)[\s\S]*?-->([\s\S]*?)<!-- \/wp:[\s\S]*?-->/';
-		$replacement = '<div class="custom-container">$0</div>';
-		return preg_replace($pattern, $replacement, $content);
+	/**
+	 * Wrap top-level non-ACF blocks without trying to parse nested Gutenberg
+	 * comments with a regular expression. Raw/legacy HTML is left untouched.
+	 */
+	public function wrap_non_acf_blocks( $content ) {
+		if ( ! is_string( $content ) || '' === trim( $content ) || ! has_blocks( $content ) ) {
+			return $content;
+		}
+
+		$output = '';
+
+		foreach ( parse_blocks( $content ) as $block ) {
+			$block_name = $block['blockName'] ?? null;
+
+			if ( empty( $block_name ) ) {
+				$output .= $block['innerHTML'] ?? '';
+				continue;
+			}
+
+			$rendered = render_block( $block );
+
+			if ( 0 === strpos( $block_name, 'acf/' ) ) {
+				$output .= $rendered;
+				continue;
+			}
+
+			$output .= '<div class="custom-container">' . $rendered . '</div>';
+		}
+
+		return $output;
 	}
 
-	public function enqueue_assets() {
-		// Prevent dequeueing of critical scripts in admin
-		if (is_admin()) {
+	/**
+	 * Preserve the boilerplate's lean frontend by default, but make the WordPress
+	 * asset removals easy to disable on projects that need core/plugin styles.
+	 */
+	private function maybe_dequeue_wordpress_assets() {
+		if ( ! apply_filters( 'timberland_strip_wordpress_assets', true ) ) {
 			return;
 		}
-	
-		wp_dequeue_style('wp-block-library');
-		wp_dequeue_style('wp-block-library-theme');
-		wp_dequeue_style('wc-block-style');
-		wp_dequeue_script('jquery');
-		wp_dequeue_style('global-styles');
 
-		
+		wp_dequeue_style( 'wp-block-library' );
+		wp_dequeue_style( 'wp-block-library-theme' );
+		wp_dequeue_style( 'wc-block-style' );
+		wp_dequeue_script( 'jquery' );
+		wp_dequeue_style( 'global-styles' );
+	}
 
-		$vite_env = 'production';
+	private function get_vite_environment() {
+		$config_path = dirname( get_template_directory() ) . '/config.json';
 
-		if ( file_exists( get_template_directory() . '/../config.json' ) ) {
-			$config   = json_decode( file_get_contents( get_template_directory() . '/../config.json' ), true );
-			$vite_env = $config['vite']['environment'] ?? 'production';
+		if ( ! file_exists( $config_path ) ) {
+			return 'production';
 		}
 
-		$dist_uri  = get_template_directory_uri() . '/assets/dist';
-		$dist_path = get_template_directory() . '/assets/dist';
-		$manifest  = null;
+		$config = json_decode( file_get_contents( $config_path ), true );
+		return $config['vite']['environment'] ?? 'production';
+	}
 
-		if ( file_exists( $dist_path . '/.vite/manifest.json' ) ) {
-			$manifest = json_decode( file_get_contents( $dist_path . '/.vite/manifest.json' ), true );
+	private function get_vite_manifest() {
+		$manifest_path = get_template_directory() . '/assets/dist/.vite/manifest.json';
+
+		if ( ! file_exists( $manifest_path ) ) {
+			return null;
 		}
 
-		if ( is_array( $manifest ) ) {
-			if ( $vite_env === 'production' || is_admin() ) {
-				$js_file = 'theme/assets/main.js';
-				wp_enqueue_style( 'main', $dist_uri . '/' . $manifest[ $js_file ]['css'][0] );
-				$strategy = is_admin() ? 'async' : 'defer';
-				$in_footer = is_admin() ? false : true;
-				wp_enqueue_script(
-					'main',
-					$dist_uri . '/' . $manifest[ $js_file ]['file'],
-					array(),
-					'',
-					array(
-						'strategy'  => $strategy,
-						'in_footer' => $in_footer,
-					)
-				);
+		$manifest = json_decode( file_get_contents( $manifest_path ), true );
+		return is_array( $manifest ) ? $manifest : null;
+	}
 
-				// wp_enqueue_style('prefix-editor-font', '//fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap');
-				$editor_css_file = 'theme/assets/styles/editor-style.css';
-				add_editor_style( $dist_uri . '/' . $manifest[ $editor_css_file ]['file'] );
-			}
+	public function enqueue_frontend_assets() {
+		$this->maybe_dequeue_wordpress_assets();
+
+		if ( 'development' === $this->get_vite_environment() ) {
+			add_action( 'wp_head', array( $this, 'output_vite_dev_scripts' ) );
+			return;
 		}
 
-		if ( $vite_env === 'development' ) {
-			function vite_head_module_hook() {
-				echo '<script type="module" crossorigin src="http://localhost:3000/@vite/client"></script>';
-				echo '<script type="module" crossorigin src="http://localhost:3000/theme/assets/main.js"></script>';
-			}
-			add_action( 'wp_head', 'vite_head_module_hook' );
+		$manifest = $this->get_vite_manifest();
+		if ( ! $manifest ) {
+			return;
 		}
+
+		$dist_uri   = get_template_directory_uri() . '/assets/dist';
+		$main_entry = $manifest['theme/assets/main.js'] ?? null;
+
+		if ( ! is_array( $main_entry ) ) {
+			return;
+		}
+
+		if ( ! empty( $main_entry['css'][0] ) ) {
+			wp_enqueue_style( 'timberland-main', $dist_uri . '/' . $main_entry['css'][0], array(), null );
+		}
+
+		if ( ! empty( $main_entry['file'] ) ) {
+			wp_enqueue_script(
+				'timberland-main',
+				$dist_uri . '/' . $main_entry['file'],
+				array(),
+				null,
+				array(
+					'strategy'  => 'defer',
+					'in_footer' => true,
+				)
+			);
+		}
+	}
+
+	/**
+	 * The editor always uses built assets. This keeps the admin independent from
+	 * the Vite dev server and, unlike the old shared method, no longer exits early
+	 * simply because WordPress is in the admin area.
+	 */
+	public function enqueue_editor_assets() {
+		$manifest = $this->get_vite_manifest();
+		if ( ! $manifest ) {
+			return;
+		}
+
+		$dist_uri     = get_template_directory_uri() . '/assets/dist';
+		$main_entry   = $manifest['theme/assets/main.js'] ?? null;
+		$editor_entry = $manifest['theme/assets/styles/editor-style.css'] ?? null;
+
+		if ( is_array( $main_entry ) && ! empty( $main_entry['css'][0] ) ) {
+			wp_enqueue_style( 'timberland-editor-main', $dist_uri . '/' . $main_entry['css'][0], array(), null );
+		}
+
+		if ( is_array( $editor_entry ) && ! empty( $editor_entry['file'] ) ) {
+			wp_enqueue_style( 'timberland-editor', $dist_uri . '/' . $editor_entry['file'], array(), null );
+		}
+	}
+
+	public function output_vite_dev_scripts() {
+		echo '<script type="module" crossorigin src="http://localhost:3000/@vite/client"></script>';
+		echo '<script type="module" crossorigin src="http://localhost:3000/theme/assets/main.js"></script>';
 	}
 
 	public function block_categories_all( $categories ) {
@@ -202,26 +276,25 @@ class Timberland extends Timber\Site {
 new Timberland();
 
 /**
- * Don't edit this one
+ * Shared ACF block renderer.
  */
 function acf_block_render_callback( $block, $content ) {
 	$context           = Timber::context();
 	$context['post']   = Timber::get_post();
 	$context['block']  = $block;
-	$context['fields']  = get_fields();
-    $block_name        = explode( '/', $block['name'] )[1];
-    $template          = 'blocks/'. $block_name . '/index.twig';
+	$context['fields'] = get_fields();
+	$block_name        = str_replace( 'acf/', '', $block['name'] ?? '' );
 
-	Timber::render( $template, $context );
+	if ( '' === $block_name ) {
+		return;
+	}
+
+	Timber::render( 'blocks/' . $block_name . '/index.twig', $context );
 }
 
-// Remove ACF block wrapper div
+// Remove the ACF frontend InnerBlocks wrapper.
 function acf_should_wrap_innerblocks( $wrap, $name ) {
 	return false;
 }
 
 add_filter( 'acf/blocks/wrap_frontend_innerblocks', 'acf_should_wrap_innerblocks', 10, 2 );
-
-add_filter('timber/twig', function ($twig) {
-	return $twig;
-});
