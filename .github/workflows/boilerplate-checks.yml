@@ -32,7 +32,10 @@ jobs:
           cache: npm
 
       - name: Install frontend dependencies
-        run: npm ci
+        run: |
+          npm ci
+          ROLLUP_VERSION=$(node -p "require('./node_modules/rollup/package.json').version")
+          npm install --no-save --package-lock=false "@rollup/rollup-linux-x64-gnu@$ROLLUP_VERSION"
 
       - name: Build frontend assets
         run: npm run build
