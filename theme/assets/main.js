@@ -1,4 +1,4 @@
-import "./styles/main.scss";
+import "./styles/main.css";
 import.meta.glob("../blocks/**/*.css", { eager: true });
 
 import Alpine from "alpinejs";
