@@ -20,7 +20,18 @@ Timberland builds your CSS and JS files using Vite. This allows you to use moder
 
 To get started:
 1. Run `npm run build` to generate assets used by the frontend and admin block editor.
-2. Run `npm run dev` to start the Vite dev server.
+2. To enable development asset loading, create an ignored `config.local.json` next to `config.json` with the contents below.
+3. Run `npm run dev` to start the Vite dev server.
+
+```json
+{
+  "vite": { "environment": "development" }
+}
+```
+
+`main` defaults to production asset loading. `npm run dev` starts Vite, but WordPress must also use the local development override above. `npm run build` produces the compiled production assets and can be run on any branch. Remove `config.local.json` or set its environment to `production` to test the compiled build locally.
+
+The Gutenberg editor loads compiled assets for predictable rendering, so run `npm run build` after changing shared styles to refresh editor previews.
 
 ### Live Reload
 
@@ -29,6 +40,18 @@ Live reload is enabled by default.
 ### Versioning
 
 To assist with long-term caching, file hashing (for example `main-e1457bfd.js`) is enabled by default.
+
+### Editor visual parity
+
+The editor stylesheet imports the shared frontend `main.scss` so Tailwind and theme styles are consistent. The editor canvas additionally approximates the frontend body colours and typography. Custom blocks rendered through the same PHP/Twig callback can closely match the live site, but iframe constraints, responsive widths, editor wrappers and interactive JavaScript can still cause differences. Always test both editor and frontend at relevant viewport widths.
+
+### ACF Local JSON
+
+ACF field groups are saved to and loaded from `theme/acf-json` via ACF Local JSON. Commit generated field-group JSON files for each client project. ACF Blocks require ACF Pro.
+
+### Shared Timber helpers
+
+The public Composer dependency `barry/barry-timber-helpers` currently targets `dev-main`, with a committed `composer.lock` for reproducible installs. Before a client deployment, tag a stable helpers release and switch to an appropriate version constraint, or pin a verified commit. Do not remove the shared package just for being a separate repo.
 
 ### Tailwind safelist
 
@@ -48,7 +71,7 @@ GitHub Actions validates Composer configuration, checks PHP syntax, installs fro
 
 ## Production
 
-When you're ready for production, run `npm run build` from the theme directory. You can test production assets in development by setting the `vite` → `environment` property to `production` in `config.json`.
+When you're ready for production, run `npm run build` from the theme directory. Production is the default in tracked `config.json`; use the ignored `config.local.json` for local development mode.
 
 If you're developing locally and moving files to your production environment, only the `theme` and `vendor` directories are needed inside the `timberland` theme directory. The theme directory structure should look like the following:
 
