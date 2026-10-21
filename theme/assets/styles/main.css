@@ -1,0 +1,55 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap");
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+@import "./theme.css";
+
+@source "../../**/*.php";
+@source "../../**/*.twig";
+@source "../**/*.js";
+@source "../../blocks/**/*.css";
+
+@source inline("bg-red-500 text-xl p-4 w-[fit-content] mx-auto mt-8");
+
+@theme {
+  --color-dark-950: #0e1012;
+  --color-dark-900: #19181f;
+  --color-dark-800: #1e1b24;
+  --color-dark-700: #23202a;
+  --color-dark-600: #333139;
+  --color-dark-500: #4f4d55;
+  --color-dark-400: #c2c6dd;
+  --color-dark-300: #c2c6dd;
+  --color-dark-200: #d3d2d4;
+  --color-dark-100: #e9e9ea;
+  --transition-duration-250: 250ms;
+}
+
+@utility p-11\/12 {
+  padding: 91.666667%;
+}
+
+@utility p-3\/2 {
+  padding: 150%;
+}
+
+body.admin-bar {
+  max-height: calc(100vh - 32px);
+  font-family: "Inter", sans-serif;
+}
+
+.no-move {
+  @apply h-full w-full overflow-hidden;
+}
+
+.content-page,
+.wp-block-post-content {
+  * { @apply mb-4; }
+  h2 { @apply text-3xl font-bold; }
+  h3 { @apply text-2xl font-medium; }
+  h4 { @apply text-xl font-medium; }
+  h5 { @apply text-lg font-medium; }
+}
+
+.wrapped-content {
+  @apply max-w-2xl mx-auto;
+}
