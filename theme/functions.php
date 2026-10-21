@@ -18,7 +18,7 @@ Timber\Timber::init();
 Timber::$dirname    = array( 'views', 'blocks' );
 // Kept disabled for backwards compatibility with the existing starter templates.
 // New themes should prefer escaped Twig output and use |raw only for trusted HTML.
-Timber::$autoescape = false;
+Timber::$autoescape = 'html';
 
 class Timberland extends Timber\Site {
 	public function __construct() {
@@ -29,6 +29,8 @@ class Timberland extends Timber\Site {
 		add_filter( 'timber/twig', array( $this, 'add_twig_functions' ) );
 		add_action( 'block_categories_all', array( $this, 'block_categories_all' ) );
 		add_action( 'acf/init', array( $this, 'acf_register_blocks' ) );
+		add_filter( 'acf/settings/save_json', array( $this, 'acf_json_path' ) );
+		add_filter( 'acf/settings/load_json', array( $this, 'acf_json_load_paths' ) );
 
 		parent::__construct();
 	}
@@ -250,6 +252,15 @@ class Timberland extends Timber\Site {
 			),
 			$categories
 		);
+	}
+
+	public function acf_json_path( $path ) {
+		return get_template_directory() . '/acf-json';
+	}
+
+	public function acf_json_load_paths( $paths ) {
+		$paths[] = get_template_directory() . '/acf-json';
+		return array_unique( $paths );
 	}
 
 	public function acf_register_blocks() {
