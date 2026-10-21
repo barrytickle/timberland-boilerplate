@@ -1,5 +1,5 @@
 <!doctype html>
-<html {{ site.language_attributes }}>
+<html {{ site.language_attributes|raw }}>
 	<head>
 		<meta charset="{{ site.charset }}"/>
 		<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -10,7 +10,7 @@
 				display: none;
 			}
 		</style>
-		{{function('wp_head')}}
+		{{ function('wp_head')|raw }}
 	</head>
 
 	<body class="{{body_class}} bg-dark-900 text-white" data-template="base.twig">
@@ -22,7 +22,7 @@
 
 		{% block footer %}
 			{% include 'footer.twig' %}
-			{{ function('wp_footer') }}
+			{{ function('wp_footer')|raw }}
 		{% endblock %}
 	</body>
 </html>
