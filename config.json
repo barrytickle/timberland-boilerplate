@@ -1,5 +1,5 @@
 {
   "vite": {
-    "environment": "development"
+    "environment": "production"
   }
 }
