@@ -154,7 +154,9 @@ class Timberland extends Timber\Site {
 	}
 
 	private function get_vite_environment() {
-		$config_path = dirname( get_template_directory() ) . '/config.json';
+		$root = dirname( get_template_directory() );
+		$local_config_path = $root . '/config.local.json';
+		$config_path = file_exists( $local_config_path ) ? $local_config_path : $root . '/config.json';
 
 		if ( ! file_exists( $config_path ) ) {
 			return 'production';
