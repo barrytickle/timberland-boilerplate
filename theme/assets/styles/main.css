@@ -24,13 +24,8 @@
   --transition-duration-250: 250ms;
 }
 
-@utility p-11\/12 {
-  padding: 91.666667%;
-}
-
-@utility p-3\/2 {
-  padding: 150%;
-}
+.p-11\/12 { padding: 91.666667%; }
+.p-3\/2 { padding: 150%; }
 
 body.admin-bar {
   max-height: calc(100vh - 32px);
