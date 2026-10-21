@@ -1,9 +1,12 @@
-@import "tailwindcss/base";
-@import "tailwindcss/components";
-@import "tailwindcss/utilities";
+@import "./main.scss";
 
-body {
-  @apply font-sans bg-red-50;
+/* Share the frontend build and theme styles for visual block parity. */
+.editor-styles-wrapper {
+  @apply font-sans bg-dark-900 text-white;
+}
+
+.editor-styles-wrapper .wp-block {
+  @apply max-w-screen-xl;
 }
 
 .wp-block {
