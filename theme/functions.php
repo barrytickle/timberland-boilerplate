@@ -24,6 +24,7 @@ class Timberland extends Timber\Site {
 	public function __construct() {
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_assets' ) );
 		add_action( 'enqueue_block_editor_assets', array( $this, 'enqueue_editor_assets' ) );
+		add_action( 'enqueue_block_assets', array( $this, 'enqueue_editor_canvas_assets' ) );
 		add_action( 'after_setup_theme', array( $this, 'theme_supports' ) );
 		add_filter( 'timber/context', array( $this, 'add_to_context' ) );
 		add_filter( 'timber/twig', array( $this, 'add_twig_functions' ) );
@@ -240,6 +241,26 @@ class Timberland extends Timber\Site {
 		if ( is_array( $editor_entry ) && ! empty( $editor_entry['file'] ) ) {
 			wp_enqueue_style( 'timberland-editor', $dist_uri . '/' . $editor_entry['file'], array(), null );
 		}
+	}
+
+	/**
+	 * Scripts for the editor canvas. enqueue_block_assets also runs on the
+	 * frontend, so this only loads in the admin, where WordPress places it
+	 * inside the editor iframe.
+	 */
+	public function enqueue_editor_canvas_assets() {
+		if ( ! is_admin() ) {
+			return;
+		}
+
+		$path = '/assets/editor/disable-preview-links.js';
+		wp_enqueue_script(
+			'timberland-disable-preview-links',
+			get_template_directory_uri() . $path,
+			array(),
+			filemtime( get_template_directory() . $path ),
+			true
+		);
 	}
 
 	public function output_vite_dev_scripts() {
