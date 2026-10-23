@@ -22,3 +22,12 @@ h1.wp-block-post-title {
 .acf-innerblocks-container {
   @apply w-full;
 }
+
+/*
+ * WordPress loads unlayered admin CSS (link colours, h1 sizes) inside the editor
+ * canvas. Unlayered rules always beat Tailwind v4's cascade layers, so inside our
+ * blocks roll those elements back to the layered theme styles instead.
+ */
+.editor-styles-wrapper [data-type^="acf/"] :is(a, h1, h2, h3, h4, h5, h6, p, ul, ol, li, blockquote, figure, figcaption, img) {
+  all: revert-layer;
+}

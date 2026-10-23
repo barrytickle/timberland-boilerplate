@@ -65,7 +65,10 @@ class Timberland extends Timber\Site {
 		$context['options']    = function_exists( 'get_fields' ) ? ( get_fields( 'options' ) ?: array() ) : array();
 		$context['header_cta'] = array();
 
-		if ( $post instanceof WP_Post ) {
+		// Blocks build their own context while the page is rendering; rendering the
+		// whole page again from inside a block repeats work and mixes up ACF's
+		// editor preview cache, so only the page itself gets processed content.
+		if ( $post instanceof WP_Post && empty( $GLOBALS['timberland_rendering_block'] ) ) {
 			$context['processed_content'] = $this->wrap_non_acf_blocks( $post->post_content );
 		} else {
 			$context['processed_content'] = '';
@@ -291,11 +294,14 @@ new Timberland();
 /**
  * Shared ACF block renderer.
  */
-function acf_block_render_callback( $block, $content ) {
-	$context           = Timber::context();
-	$context['post']   = Timber::get_post();
-	$context['block']  = $block;
-	$context['fields'] = get_fields();
+function acf_block_render_callback( $block, $content = '', $is_preview = false ) {
+	$GLOBALS['timberland_rendering_block'] = true;
+	$context               = Timber::context();
+	unset( $GLOBALS['timberland_rendering_block'] );
+	$context['post']       = Timber::get_post();
+	$context['block']      = $block;
+	$context['fields']     = get_fields();
+	$context['is_preview'] = $is_preview;
 	$block_name        = str_replace( 'acf/', '', $block['name'] ?? '' );
 
 	if ( '' === $block_name ) {
